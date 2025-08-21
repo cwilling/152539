@@ -3,9 +3,9 @@
  * @brief mex code to simulate a recurrent random network with excitatory 
  *        and inhibitory LIF CONDUCTANCE-BASED neurons. 
  *          The network is fully described in the paper 
- *          “Comparison of the dynamics of neural interactions between
+ *          "Comparison of the dynamics of neural interactions between
  *          current-based and conductance-based integrate-and-fire 
- *          recurrent networks” written by S.Cavallari, S.Panzeri 
+ *          recurrent networks" written by S.Cavallari, S.Panzeri 
  *          and A.Mazzoni and published in Frontiers in Neural Circuits 
  *          (2014), 8:12. doi:10.3389/fncir.2014.00012.
  *          Please cite this paper if you use the code.
@@ -131,6 +131,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
     double rndNum;          /* stores i.i.d. 0 to 1 distributed random numbers*/
     int seed1;              /* first random seed (it defines connections)*/
     int seed2;              /* second random seed (it defines poisson variate)*/
+	int restart;            /* where to start processing */
+	int sample_width;       /* how many samples to process */
     
     // Leak membrane potential, V_leaky:
     double V_leaky;
@@ -400,9 +402,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
     
     
     // Check of the number of inputs
-    if(nrhs<4)
+    if(nrhs<6)
         mexErrMsgTxt("Not enough input arguments.");
-    if (nrhs != 5) {
+    if (nrhs != 7) {
         mexPrintf("Input arguments missing! \n");
     }
    
@@ -441,6 +443,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
     if (seed1<0 || seed2 <0){
         mexErrMsgTxt("seed1 and seed2 must be positive integer\n");
     }
+
+	/* (Re)start position and sample width */
+    restart = (int)*mxGetPr(prhs[5]);
+    sample_width = (int)*mxGetPr(prhs[6]);
+    //mexPrintf("restart sim at: %d\n", restart);
+    //mexPrintf("sample_width  = %d\n", sample_width);
    
     /* Normalizing in Dt units --------------------------------------------*/
     eTm   = eTm   / Dt;
@@ -579,7 +587,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mexEvalString("drawnow;");
 
     /* Loop over time -----------------------------------------------------*/
-    for(t=0; t<simulLen; t++) {
+    //for(t=0; t<simulLen; t++) {
+    mexPrintf("Loop restarting at: %d (sample_width=%d).\n", restart, sample_width);    
+    for(t=restart; t<restart+sample_width; t++) {
      
         // Needed for poisson random variate generations 
         exp_x2eFR = exp(-x2eFR[t]);
@@ -901,6 +911,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
             iCounter=0;
         }
     } // end of loop over time -------------------------------------------------------
+    mexPrintf("Loop finished at t = %d\n\n", t);    
     
     mxFree(tLastSP);
     mxFree(aX_rec);
