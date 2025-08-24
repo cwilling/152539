@@ -75,6 +75,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
         int nrhs, const mxArray *prhs[])
         
 {
+    mexPrintf("\nRunning in code_COBN.c\n");
     // Variables declaration ----------------------------------------------
      
     //Time:
@@ -370,6 +371,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     
     // end of the definition of the network parameters----------------------
     
+/*
     // Printing the network's parameters
     mexPrintf("VsynAMPA = %.0f mV\n", VsynAMPA);
     mexPrintf("VsynGABA = %.0f mV\n", VsynGABA);
@@ -395,6 +397,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mexPrintf("ge2i = %.2f nS\n", ge2i);    
     mexPrintf("gx2i = %.2f nS\n", gx2i);   
     mexPrintf("gx2e = %.2f nS\n\n", gx2e);
+*/
     
     // Integration step, in [ms]:
     tmp = mxGetField(prhs[0], 0, "Dt");
@@ -402,9 +405,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
     
     
     // Check of the number of inputs
-    if(nrhs<6)
+    if(nrhs<8)
         mexErrMsgTxt("Not enough input arguments.");
-    if (nrhs != 7) {
+    if (nrhs != 9) {
         mexPrintf("Input arguments missing! \n");
     }
    
@@ -449,7 +452,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     sample_width = (int)*mxGetPr(prhs[6]);
     //mexPrintf("restart sim at: %d\n", restart);
     //mexPrintf("sample_width  = %d\n", sample_width);
-   
+
     /* Normalizing in Dt units --------------------------------------------*/
     eTm   = eTm   / Dt;
     iTm   = iTm   / Dt;
@@ -482,8 +485,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
     iFR = (unsigned short *) mxGetData(plhs[3]);
     
     
+    /* Use saved array of last spike times */
     // Allocating arrays:
-    tLastSP = mxCalloc(totNnrn, sizeof(double)); /* array with the last spike time of each neuron*/
+    //tLastSP = mxCalloc(totNnrn, sizeof(double)); /* array with the last spike time of each neuron*/
+    mxArray *tLastSPcopy = mxDuplicateArray(prhs[7]);
+    plhs[4] = tLastSPcopy;
+    tLastSP = mxGetPr(plhs[4]);
     
     aX_rec  = mxCalloc(totNnrn, sizeof(double)); /* Auxiliary recurrent AMPA variables*/
     aX_ext  = mxCalloc(totNnrn, sizeof(double)); /* Auxiliary external AMPA variables*/
@@ -493,7 +500,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
     aS_ext  = mxCalloc(totNnrn, sizeof(double)); /* external AMPA time course*/
     gS      = mxCalloc(totNnrn, sizeof(double)); /* GABA time course*/
     
-    V       = mxCalloc(totNnrn, sizeof(double)); /* membrane potential*/
+    /* Use saved membrane potentials */
+    //V       = mxCalloc(totNnrn, sizeof(double)); /* membrane potential*/
+    mxArray *Vcopy = mxDuplicateArray(prhs[8]);
+    plhs[5] = Vcopy;
+    V = mxGetPr(plhs[5]);
+
     Ncon    = mxCalloc(totNnrn, sizeof(mwSize)); /* array with the number of outgoing connections of each neuron*/
     
     // Allocating matrices:
@@ -569,13 +581,15 @@ void mexFunction(int nlhs, mxArray *plhs[],
     
     eCounter=0;
     iCounter=0;
-    
+
+/* These now initialised externally and passed here as calling parameters
     for(nrn=0; nrn<totNnrn; nrn++) {
         // Initializing the membrane potential to V_leaky:
         V[nrn] = V_leaky;
         // Initializing time of last spike to -simulLen:
         tLastSP[nrn] = -simulLen;
     }
+*/
      
     mexPrintf("Simulation_time=%.0f ms\n", simulLen*Dt);
     
@@ -591,6 +605,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mexPrintf("Loop restarting at: %d (sample_width=%d).\n", restart, sample_width);    
     for(t=restart; t<restart+sample_width; t++) {
      
+        //mexPrintf("initial membrane potential = %f\n", V[t]);
+        //mexPrintf("initial time of last spike = %f\n", tLastSP[t]);
+
         // Needed for poisson random variate generations 
         exp_x2eFR = exp(-x2eFR[t]);
         exp_x2iFR = exp(-x2iFR[t]);
@@ -910,17 +927,19 @@ void mexFunction(int nlhs, mxArray *plhs[],
             iFR[t+1] = iCounter;
             iCounter=0;
         }
+        //mexPrintf("final membrane potential = %f\n", V[t]);
+        //mexPrintf("final time of last spike = %f\n", tLastSP[t]);
     } // end of loop over time -------------------------------------------------------
     mexPrintf("Loop finished at t = %d\n\n", t);    
     
-    mxFree(tLastSP);
+    //mxFree(tLastSP);
     mxFree(aX_rec);
     mxFree(aX_ext);
     mxFree(gX);
     mxFree(aS_rec);
     mxFree(aS_ext);
     mxFree(gS);
-    mxFree(V);
+    //mxFree(V);
     mxFree(Ncon);
     mxFree(eSPC);
     mxFree(iSPC);
