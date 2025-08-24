@@ -3,9 +3,9 @@
  * @brief mex code to simulate a recurrent random network with excitatory 
  *        and inhibitory LIF CONDUCTANCE-BASED neurons. 
  *          The network is fully described in the paper 
- *          “Comparison of the dynamics of neural interactions between
+ *          "Comparison of the dynamics of neural interactions between
  *          current-based and conductance-based integrate-and-fire 
- *          recurrent networks” written by S.Cavallari, S.Panzeri 
+ *          recurrent networks" written by S.Cavallari, S.Panzeri 
  *          and A.Mazzoni and published in Frontiers in Neural Circuits 
  *          (2014), 8:12. doi:10.3389/fncir.2014.00012.
  *          Please cite this paper if you use the code.
@@ -581,6 +581,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* Loop over time -----------------------------------------------------*/
     for(t=0; t<simulLen; t++) {
      
+        mexPrintf("initial membrane potential = %f\n", V[t]);
+
         // Needed for poisson random variate generations 
         exp_x2eFR = exp(-x2eFR[t]);
         exp_x2iFR = exp(-x2iFR[t]);
@@ -900,6 +902,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
             iFR[t+1] = iCounter;
             iCounter=0;
         }
+        mexPrintf("final membrane potential = %f\n", V[t]);
     } // end of loop over time -------------------------------------------------------
     
     mxFree(tLastSP);
