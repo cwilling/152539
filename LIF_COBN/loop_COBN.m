@@ -154,7 +154,7 @@ function loop_COBN (sample_width)
 
   %  Initialise a vector for saved membrane potentials
   %V = zeros(1,M) + net_COBN.V_leaky;
-  V = zeros(1,M) * net_COBN.V_leaky;
+  V = ones(1,M) * net_COBN.V_leaky;
 
   %  Initialise a vector for time of last spike
   %tLastSP = zeros(1,M) - M;
