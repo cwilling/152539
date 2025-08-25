@@ -2,7 +2,7 @@
 
 function loop_COBN (sample_width)
   arguments
-	sample_width = 8;	% time steps of input window
+	sample_width = 16;	% time steps of input window
   end
   restart = 0;
 
@@ -96,7 +96,8 @@ function loop_COBN (sample_width)
   fprintf('\n COBN sim: set basic sim parameters \n')
  % need to execute this In the Matlab workspace:
  % parameters_COBN; % above: generates the struct net_COBN with all the parameters of the network
-  simulation_length = 20000; % units: (msec). ie 10, 20, 40 sec
+  %simulation_length = 20000; % units: (msec). ie 10, 20, 40 sec
+  simulation_length = xf * 1000; % units: (msec). ie 10, 20, 40 sec
   M = simulation_length/net_COBN.Dt; % length of the simulation in time steps (Dt)
  
   external_signal_intensity = 2 %default % units; (spikes/ms/cell)
@@ -152,10 +153,16 @@ function loop_COBN (sample_width)
 % "Standard" initialisation done
 
   %  Initialise a vector for saved membrane potentials
-  V = zeros(M,1) + net_COBN.V_leaky;
+  %V = zeros(1,M) + net_COBN.V_leaky;
+  V = zeros(1,M) * net_COBN.V_leaky;
+
   %  Initialise a vector for time of last spike
-  %tLastSP = zeros(M,1) - length(INPUT2I);
-  tLastSP = zeros(M,1) - M;
+  %tLastSP = zeros(1,M) - M;
+  tLastSP = - ones(1,M) * simulation_length;
+
+  % Initialise array of neuron connections
+  A = zeros(Ntot);
+  Acopy = A;
 
   fprintf("Setup done!\n");
   pause(1);
@@ -165,19 +172,21 @@ function loop_COBN (sample_width)
   iterations = length(V) / sample_width;
   fprintf("iterations set by: %d/%d = %d\n", length(V), sample_width, iterations);
 
-  [E2EI,I2EI,eFR,iFR,tLastSP,V] = code_COBN(net_COBN, INPUT2E, INPUT2I, SEED_connections, SEED_poisson, restart, sample_width, tLastSP, V);
+  [E2EI,I2EI,eFR,iFR,tLastSP,V,A] = code_COBN(net_COBN, INPUT2E, INPUT2I, SEED_connections, SEED_poisson, restart, sample_width, tLastSP, V, A);
+  fprintf("Array A isequal() result = %d\n", isequal(Acopy, A));
+  Acopy = A;
 
   for i = 2:iterations
     fprintf("\nloop_COBN() Iteration = %d of %d\n", i,iterations);
 
     restart = restart + sample_width;
-    [E2EI,I2EI,eFR,iFR,tLastSP,V] = code_COBN(net_COBN, INPUT2E, INPUT2I, SEED_connections, SEED_poisson, restart, sample_width, tLastSP, V);
-	%pause(5/10);	% Any effect?
+    [E2EI,I2EI,eFR,iFR,tLastSP,V,A] = code_COBN(net_COBN, INPUT2E, INPUT2I, SEED_connections, SEED_poisson, restart, sample_width, tLastSP, V, A);
+    fprintf("Array A isequal(pre,post) = %d\n", isequal(Acopy, A));
+    Acopy = A;
   end
 
-  % Find last spike
-  %last_spike = find(tLastSP > -5, 1, 'last');
-  last_spike = 2000;
+  % Find last spike so we can display just the active part of outputs
+  last_spike = min(find(tLastSP > -5, 1, 'last') + 500, length(tLastSP));
   figure;
   tiledlayout(2,1)
   ax1 = nexttile; plot(V(1:last_spike), 'Color', 'black');      title('Membrane Potential'); xlabel('time');

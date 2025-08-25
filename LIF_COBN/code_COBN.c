@@ -265,6 +265,22 @@ void mexFunction(int nlhs, mxArray *plhs[],
    
     // end of the variables declaration--------------------------------------------
     
+    // Check of the number of inputs
+    if(nrhs<10)
+        mexErrMsgTxt("Not enough input arguments.");
+    if (nrhs != 10) {
+        mexPrintf("Input arguments missing! \n");
+    }
+
+    /* (Re)start position and sample width.
+    *  Want this value now to enable conditional
+    *  printing of network's parameters
+    */
+    restart = (int)*mxGetPr(prhs[5]);
+    sample_width = (int)*mxGetPr(prhs[6]);
+    //mexPrintf("restart sim at: %d\n", restart);
+    //mexPrintf("sample_width  = %d\n", sample_width);
+    
    
     /* Defining the network parameters ------------------------------------
      *
@@ -371,45 +387,40 @@ void mexFunction(int nlhs, mxArray *plhs[],
     
     // end of the definition of the network parameters----------------------
     
-/*
     // Printing the network's parameters
-    mexPrintf("VsynAMPA = %.0f mV\n", VsynAMPA);
-    mexPrintf("VsynGABA = %.0f mV\n", VsynGABA);
-    mexPrintf("V_leaky = %.0f mV\n", V_leaky);
-    mexPrintf("V_threshold = %.0f mV\n", Vthr);
-    mexPrintf("eV_reset = %.0f mV\n", eVres);
-    mexPrintf("iV_reset = %.0f mV\n\n", iVres);
-    mexPrintf("iT_rise = %.2f ms\n", iTr);    
-    mexPrintf("iT_decay = %.2f ms\n", iTd);    
-    mexPrintf("e2eT_rise = %.2f ms\n", e2eTr);    
-    mexPrintf("e2eT_decay = %.2f ms\n", e2eTd);    
-    mexPrintf("e2iT_rise = %.2f ms\n", e2iTr);    
-    mexPrintf("e2iT_decay = %.2f ms\n", e2iTd);    
-    mexPrintf("eT_latency = %.1f ms\n", eTl);    
-    mexPrintf("iT_latency = %.1f ms\n", iTl);    
-    mexPrintf("eTm = %.1f ms\n", eTm);    
-    mexPrintf("iTm = %.1f ms\n", iTm);   
-    mexPrintf("eTrp = %.1f ms\n", eTrp);   
-    mexPrintf("iTrp = %.1f ms\n\n", iTrp);    
-    mexPrintf("gi2i = %.2f nS\n", gi2i);    
-    mexPrintf("ge2e = %.2f nS\n", ge2e);
-    mexPrintf("gi2e = %.2f nS\n", gi2e);    
-    mexPrintf("ge2i = %.2f nS\n", ge2i);    
-    mexPrintf("gx2i = %.2f nS\n", gx2i);   
-    mexPrintf("gx2e = %.2f nS\n\n", gx2e);
-*/
-    
+	// only on first iteration of looped calls.
+    if (restart == 0)
+    {
+        mexPrintf("VsynAMPA = %.0f mV\n", VsynAMPA);
+        mexPrintf("VsynGABA = %.0f mV\n", VsynGABA);
+        mexPrintf("V_leaky = %.0f mV\n", V_leaky);
+        mexPrintf("V_threshold = %.0f mV\n", Vthr);
+        mexPrintf("eV_reset = %.0f mV\n", eVres);
+        mexPrintf("iV_reset = %.0f mV\n\n", iVres);
+        mexPrintf("iT_rise = %.2f ms\n", iTr);    
+        mexPrintf("iT_decay = %.2f ms\n", iTd);    
+        mexPrintf("e2eT_rise = %.2f ms\n", e2eTr);    
+        mexPrintf("e2eT_decay = %.2f ms\n", e2eTd);    
+        mexPrintf("e2iT_rise = %.2f ms\n", e2iTr);    
+        mexPrintf("e2iT_decay = %.2f ms\n", e2iTd);    
+        mexPrintf("eT_latency = %.1f ms\n", eTl);    
+        mexPrintf("iT_latency = %.1f ms\n", iTl);    
+        mexPrintf("eTm = %.1f ms\n", eTm);    
+        mexPrintf("iTm = %.1f ms\n", iTm);   
+        mexPrintf("eTrp = %.1f ms\n", eTrp);   
+        mexPrintf("iTrp = %.1f ms\n\n", iTrp);    
+        mexPrintf("gi2i = %.2f nS\n", gi2i);    
+        mexPrintf("ge2e = %.2f nS\n", ge2e);
+        mexPrintf("gi2e = %.2f nS\n", gi2e);    
+        mexPrintf("ge2i = %.2f nS\n", ge2i);    
+        mexPrintf("gx2i = %.2f nS\n", gx2i);   
+        mexPrintf("gx2e = %.2f nS\n\n", gx2e);
+    }
+
     // Integration step, in [ms]:
     tmp = mxGetField(prhs[0], 0, "Dt");
     Dt = *mxGetPr(tmp);
     
-    
-    // Check of the number of inputs
-    if(nrhs<8)
-        mexErrMsgTxt("Not enough input arguments.");
-    if (nrhs != 9) {
-        mexPrintf("Input arguments missing! \n");
-    }
    
     // Check of the length of the two external input arrays
     simulLen = mxGetNumberOfElements(prhs[1]); 
@@ -446,12 +457,6 @@ void mexFunction(int nlhs, mxArray *plhs[],
     if (seed1<0 || seed2 <0){
         mexErrMsgTxt("seed1 and seed2 must be positive integer\n");
     }
-
-	/* (Re)start position and sample width */
-    restart = (int)*mxGetPr(prhs[5]);
-    sample_width = (int)*mxGetPr(prhs[6]);
-    //mexPrintf("restart sim at: %d\n", restart);
-    //mexPrintf("sample_width  = %d\n", sample_width);
 
     /* Normalizing in Dt units --------------------------------------------*/
     eTm   = eTm   / Dt;
@@ -515,54 +520,69 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* array with the number of recurrent inhibitory spikes arriving on each neuron
      * in each time step of the cycle*/                                                             
     iSPC    = mxCalloc(totNnrn * iCycSize, sizeof(double)); 
-    /* array with the connections of each neuron*/
-    A       = mxCalloc(totNnrn * totNnrn , sizeof(mwSize)); 
-    
-    
-    /* Connections --------------------------------------------------------
-     * To generate the random connections we make use of the seed that has
-     * been provided by the user (if it has been provided), seed1, so that the same
-     * network configuration can be used repeatedly.*/
-        
-    syntemp = mxCalloc(totNnrn, sizeof(mwSize)); /* auxiliary array to build the connections of the network*/
-    RAND_MAX_double = (double) RAND_MAX;
-    seed1 = -seed1; /*seed for ran1 must be a negative integer*/
 
-    for(nrn=0; nrn<totNnrn; nrn++) { /*nrn is the postsynaptic neuron*/
-        //recurrent AMPA connections entering the nrn-th neuron
-        for(nrn2=0;nrn2<eNnrn;nrn2++) syntemp[nrn2]=0; /*initializing the syntemp array*/
-        ip = p*eNnrn + (int)(0.5+gasdev(&seed1)*sqrt((float)(p*eNnrn))); /*number of AMPA connections entering the nrn-th neuron*/
-        /*The mean number of AMPA connections entering each neuron is (p*eNnrn) */
-        /*The variance of the number of AMPA connections entering each neuron is (p*eNnrn) */
-        for(nrn2=0; nrn2<ip; nrn2++) {     
-            kn = ran1(&seed1)*eNnrn; /*randomly selecting an excitatory presynaptic neuron*/
-            if (syntemp[kn]==0) {
-                syntemp[kn]=1;
-                A[Ncon[kn] + kn*totNnrn] = nrn; /*connection: kn -> nrn*/
-                Ncon[kn]++; /*number of outgoing connections of the kn-th neuron*/
+	/* Use saved array of connections */
+    /* array with the connections of each neuron*/
+    //A       = mxCalloc(totNnrn * totNnrn , sizeof(mwSize)); 
+    mxArray *Acopy = mxDuplicateArray(prhs[9]);
+    plhs[6] = Acopy;
+    A = mxGetPr(plhs[6]);
+
+    /* On first run, set up the connections array and return it as one of the outputs.
+	*  On subsequent runs, use the same array we previously returned i.e. this one
+	*/
+    if (restart == 0)
+    {
+    
+        Ncon    = mxCalloc(totNnrn, sizeof(mwSize)); /* array with the number of outgoing connections of each neuron*/
+        
+        
+        /* Connections --------------------------------------------------------
+         * To generate the random connections we make use of the seed that has
+         * been provided by the user (if it has been provided), seed1, so that the same
+         * network configuration can be used repeatedly.*/
+            
+        syntemp = mxCalloc(totNnrn, sizeof(mwSize)); /* auxiliary array to build the connections of the network*/
+        RAND_MAX_double = (double) RAND_MAX;
+        seed1 = -seed1; /*seed for ran1 must be a negative integer*/
+    
+        for(nrn=0; nrn<totNnrn; nrn++) { /*nrn is the postsynaptic neuron*/
+            //recurrent AMPA connections entering the nrn-th neuron
+            for(nrn2=0;nrn2<eNnrn;nrn2++) syntemp[nrn2]=0; /*initializing the syntemp array*/
+            ip = p*eNnrn + (int)(0.5+gasdev(&seed1)*sqrt((float)(p*eNnrn))); /*number of AMPA connections entering the nrn-th neuron*/
+            /*The mean number of AMPA connections entering each neuron is (p*eNnrn) */
+            /*The variance of the number of AMPA connections entering each neuron is (p*eNnrn) */
+            for(nrn2=0; nrn2<ip; nrn2++) {     
+                kn = ran1(&seed1)*eNnrn; /*randomly selecting an excitatory presynaptic neuron*/
+                if (syntemp[kn]==0) {
+                    syntemp[kn]=1;
+                    A[Ncon[kn] + kn*totNnrn] = nrn; /*connection: kn -> nrn*/
+                    Ncon[kn]++; /*number of outgoing connections of the kn-th neuron*/
+                }
+                else{   
+                    nrn2--;
+                }
             }
-            else{   
-                nrn2--;
+            //GABA connections entering the nrn-th neuron
+            for(nrn2=0;nrn2<iNnrn;nrn2++) syntemp[nrn2]=0; /*initializing the syntemp array*/
+            ip = p*iNnrn + (int)(0.5+gasdev(&seed1)*sqrt((float)(p*iNnrn))); /*number of GABA connections entering the nrn-th neuron*/
+            /*The mean number of GABA connections entering each neuron is (p*iNnrn) */
+            /*The variance of the number of GABA connections entering each neuron is (p*iNnrn) */
+            for(nrn2=0; nrn2<ip; nrn2++) {
+                kn = eNnrn + ran1(&seed1)*iNnrn; /*randomly selecting an inhibitory presynaptic neuron*/     
+                if (syntemp[kn - eNnrn]==0) {
+                    syntemp[kn - eNnrn]=1;
+                    A[Ncon[kn] + kn*totNnrn] = nrn; /*connection: kn -> nrn*/
+                    Ncon[kn]++; /*number of outgoing connections of the kn-th neuron*/
+                }
+                else{   
+                    nrn2--;
+                }
             }
         }
-        //GABA connections entering the nrn-th neuron
-        for(nrn2=0;nrn2<iNnrn;nrn2++) syntemp[nrn2]=0; /*initializing the syntemp array*/
-        ip = p*iNnrn + (int)(0.5+gasdev(&seed1)*sqrt((float)(p*iNnrn))); /*number of GABA connections entering the nrn-th neuron*/
-        /*The mean number of GABA connections entering each neuron is (p*iNnrn) */
-        /*The variance of the number of GABA connections entering each neuron is (p*iNnrn) */
-        for(nrn2=0; nrn2<ip; nrn2++) {
-            kn = eNnrn + ran1(&seed1)*iNnrn; /*randomly selecting an inhibitory presynaptic neuron*/     
-            if (syntemp[kn - eNnrn]==0) {
-                syntemp[kn - eNnrn]=1;
-                A[Ncon[kn] + kn*totNnrn] = nrn; /*connection: kn -> nrn*/
-                Ncon[kn]++; /*number of outgoing connections of the kn-th neuron*/
-            }
-            else{   
-                nrn2--;
-            }
-        }
+        mxFree(syntemp);
     }
-    mxFree(syntemp);
+
     // check of the average number of outgoing connections ---------------------
     avNcon_outgo=0;
     sdNcon_outgo=0;
@@ -943,7 +963,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mxFree(Ncon);
     mxFree(eSPC);
     mxFree(iSPC);
-    mxFree(A);
+    //mxFree(A);
 
     printf("Simulation done.\n\n");  
 } // main end
