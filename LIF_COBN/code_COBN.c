@@ -129,8 +129,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
     // Random numbers generation
     double RAND_MAX_double; /* max value returned by function random*/
     double rndNum;          /* stores i.i.d. 0 to 1 distributed random numbers*/
-    int seed1;              /* first random seed (it defines connections)*/
-    int seed2;              /* second random seed (it defines poisson variate)*/
+    long seed1;              /* first random seed (it defines connections)*/
+    long seed2;              /* second random seed (it defines poisson variate)*/
     
     // Leak membrane potential, V_leaky:
     double V_leaky;
@@ -253,6 +253,10 @@ void mexFunction(int nlhs, mxArray *plhs[],
     int avNcon_outgo;
     int sdNcon_outgo;
 
+	/* Loop variables */
+	int	restart;
+	int	sample_width;
+
     /*OUTPUT variables*/
     double *e2eI;   /*sum of the AMPA currents on excitatory neurons as a function of the time*/
     double *i2eI;   /*sum of the GABA currents on excitatory neurons as a function of the time*/
@@ -365,7 +369,14 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* Leak membrane potential, in [mV]*/
     tmp   = mxGetField(prhs[0], 0, "V_leaky" );
     V_leaky  = *mxGetPr(tmp);
-    
+
+    /* Loop variables */
+    tmp   = mxGetField(prhs[0], 0, "restart" );
+    restart  = *mxGetPr(tmp);
+
+    tmp   = mxGetField(prhs[0], 0, "sample_width" );
+    sample_width  = *mxGetPr(tmp);
+
     // end of the definition of the network parameters----------------------
     
     // Printing the network's parameters
@@ -393,6 +404,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mexPrintf("ge2i = %.2f nS\n", ge2i);    
     mexPrintf("gx2i = %.2f nS\n", gx2i);   
     mexPrintf("gx2e = %.2f nS\n\n", gx2e);
+    mexPrintf("restart      = %d\n", restart);
+    mexPrintf("sample_width = %d\n\n", sample_width);
     
     // Integration step, in [ms]:
     tmp = mxGetField(prhs[0], 0, "Dt");
@@ -579,7 +592,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
     mexEvalString("drawnow;");
 
     /* Loop over time -----------------------------------------------------*/
-    for(t=0; t<simulLen; t++) {
+    mexPrintf("Loop restarting at: %d (sample_width=%d).\n", restart, sample_width);
+    for(t=restart; t<restart+sample_width; t++) {
      
         // Needed for poisson random variate generations 
         exp_x2eFR = exp(-x2eFR[t]);
