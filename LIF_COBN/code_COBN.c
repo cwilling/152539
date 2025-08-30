@@ -22,6 +22,8 @@
 // Needed for building mex file
 #include <mex.h>
 #include <matrix.h>
+// Needed for memcpy
+#include <string.h>
 
 /* Random number generator routine. To generate real random numbers 0.0-1.0
  * Should be seeded with a negative integer*/
@@ -129,8 +131,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
     // Random numbers generation
     double RAND_MAX_double; /* max value returned by function random*/
     double rndNum;          /* stores i.i.d. 0 to 1 distributed random numbers*/
-    long seed1;              /* first random seed (it defines connections)*/
-    long seed2;              /* second random seed (it defines poisson variate)*/
+    mwSize seed1;              /* first random seed (it defines connections)*/
+    mwSize seed2;              /* second random seed (it defines poisson variate)*/
     
     // Leak membrane potential, V_leaky:
     double V_leaky;
@@ -254,8 +256,8 @@ void mexFunction(int nlhs, mxArray *plhs[],
     int sdNcon_outgo;
 
 	/* Loop variables */
-	int	restart;
-	int	sample_width;
+	mwSize	restart;
+	mwSize	sample_width;
 
     /*OUTPUT variables*/
     double *e2eI;   /*sum of the AMPA currents on excitatory neurons as a function of the time*/
@@ -380,32 +382,34 @@ void mexFunction(int nlhs, mxArray *plhs[],
     // end of the definition of the network parameters----------------------
     
     // Printing the network's parameters
-    mexPrintf("VsynAMPA = %.0f mV\n", VsynAMPA);
-    mexPrintf("VsynGABA = %.0f mV\n", VsynGABA);
-    mexPrintf("V_leaky = %.0f mV\n", V_leaky);
-    mexPrintf("V_threshold = %.0f mV\n", Vthr);
-    mexPrintf("eV_reset = %.0f mV\n", eVres);
-    mexPrintf("iV_reset = %.0f mV\n\n", iVres);
-    mexPrintf("iT_rise = %.2f ms\n", iTr);    
-    mexPrintf("iT_decay = %.2f ms\n", iTd);    
-    mexPrintf("e2eT_rise = %.2f ms\n", e2eTr);    
-    mexPrintf("e2eT_decay = %.2f ms\n", e2eTd);    
-    mexPrintf("e2iT_rise = %.2f ms\n", e2iTr);    
-    mexPrintf("e2iT_decay = %.2f ms\n", e2iTd);    
-    mexPrintf("eT_latency = %.1f ms\n", eTl);    
-    mexPrintf("iT_latency = %.1f ms\n", iTl);    
-    mexPrintf("eTm = %.1f ms\n", eTm);    
-    mexPrintf("iTm = %.1f ms\n", iTm);   
-    mexPrintf("eTrp = %.1f ms\n", eTrp);   
-    mexPrintf("iTrp = %.1f ms\n\n", iTrp);    
-    mexPrintf("gi2i = %.2f nS\n", gi2i);    
-    mexPrintf("ge2e = %.2f nS\n", ge2e);
-    mexPrintf("gi2e = %.2f nS\n", gi2e);    
-    mexPrintf("ge2i = %.2f nS\n", ge2i);    
-    mexPrintf("gx2i = %.2f nS\n", gx2i);   
-    mexPrintf("gx2e = %.2f nS\n\n", gx2e);
-    mexPrintf("restart      = %d\n", restart);
-    mexPrintf("sample_width = %d\n\n", sample_width);
+    // only on first iteration of looped calls.
+    if (restart == 0)
+    {
+        mexPrintf("VsynAMPA = %.0f mV\n", VsynAMPA);
+        mexPrintf("VsynGABA = %.0f mV\n", VsynGABA);
+        mexPrintf("V_leaky = %.0f mV\n", V_leaky);
+        mexPrintf("V_threshold = %.0f mV\n", Vthr);
+        mexPrintf("eV_reset = %.0f mV\n", eVres);
+        mexPrintf("iV_reset = %.0f mV\n\n", iVres);
+        mexPrintf("iT_rise = %.2f ms\n", iTr);    
+        mexPrintf("iT_decay = %.2f ms\n", iTd);    
+        mexPrintf("e2eT_rise = %.2f ms\n", e2eTr);    
+        mexPrintf("e2eT_decay = %.2f ms\n", e2eTd);    
+        mexPrintf("e2iT_rise = %.2f ms\n", e2iTr);    
+        mexPrintf("e2iT_decay = %.2f ms\n", e2iTd);    
+        mexPrintf("eT_latency = %.1f ms\n", eTl);    
+        mexPrintf("iT_latency = %.1f ms\n", iTl);    
+        mexPrintf("eTm = %.1f ms\n", eTm);    
+        mexPrintf("iTm = %.1f ms\n", iTm);   
+        mexPrintf("eTrp = %.1f ms\n", eTrp);   
+        mexPrintf("iTrp = %.1f ms\n\n", iTrp);    
+        mexPrintf("gi2i = %.2f nS\n", gi2i);    
+        mexPrintf("ge2e = %.2f nS\n", ge2e);
+        mexPrintf("gi2e = %.2f nS\n", gi2e);    
+        mexPrintf("ge2i = %.2f nS\n", ge2i);    
+        mexPrintf("gx2i = %.2f nS\n", gx2i);   
+        mexPrintf("gx2e = %.2f nS\n\n", gx2e);
+    }
     
     // Integration step, in [ms]:
     tmp = mxGetField(prhs[0], 0, "Dt");
@@ -413,11 +417,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
     
     
     // Check of the number of inputs
-    if(nrhs<4)
+	// At v4: net_COBN, INPUT2E, INPUT2I, tLastSP, V, A, E2EI
+    if(nrhs != 7)
         mexErrMsgTxt("Not enough input arguments.");
-    if (nrhs != 5) {
-        mexPrintf("Input arguments missing! \n");
-    }
    
     // Check of the length of the two external input arrays
     simulLen = mxGetNumberOfElements(prhs[1]); 
@@ -440,21 +442,27 @@ void mexFunction(int nlhs, mxArray *plhs[],
      /* Checking if the first random seed has been passed as an input. Using
      * time(NULL) otherwise.*/
 
-    seed1 = *mxGetPr(prhs[3]);
-    if(seed1==0)
-        seed1 = time(NULL);
-    
-    // Checking if the second random seed has been passed as an input.
-    // Using time(NULL) otherwise.
-    if(nrhs==5)
-        seed2 = (int) *mxGetPr(prhs[4]);
-    else
-        seed2 = time(NULL);
+    tmp   = mxGetField(prhs[0], 0, "SEED_connections" );
+    seed1  = *mxGetPr(tmp);
+    if(seed1==0) seed1 = time(NULL);
+
+    tmp   = mxGetField(prhs[0], 0, "SEED_poisson" );
+    seed2  = *mxGetPr(tmp);
+    if(seed2==0) seed2 = time(NULL);
     
     if (seed1<0 || seed2 <0){
         mexErrMsgTxt("seed1 and seed2 must be positive integer\n");
     }
-   
+ 
+    // Print more imput parameters only on first iteration of looped calls.
+    if (restart == 0)
+    {
+        mexPrintf("restart                  = %d\n", restart);
+        mexPrintf("sample_width             = %d\n", sample_width);
+        mexPrintf("seed1 (SEED_connections) = %d\n", seed1);
+        mexPrintf("seed2 (SEED_poisson)     = %d\n\n", seed2);
+    }
+
     /* Normalizing in Dt units --------------------------------------------*/
     eTm   = eTm   / Dt;
     iTm   = iTm   / Dt;
@@ -474,8 +482,18 @@ void mexFunction(int nlhs, mxArray *plhs[],
     iCycSize = (mwSize) (iTl) + 1;
     
     /* Assigning ouputs ---------------------------------------------------*/
-    plhs[0] = mxCreateDoubleMatrix(simulLen, 1, mxREAL); 
-    e2eI = mxGetPr(plhs[0]); 
+    if (restart == 0)
+    {
+        plhs[0] = mxCreateDoubleMatrix(simulLen, 1, mxREAL); 
+        e2eI = mxGetPr(plhs[0]); 
+    }
+    else
+    {
+        // Use a recycled version
+        mxArray *E2EIcopy = mxDuplicateArray(prhs[6]);
+        plhs[0] = E2EIcopy;
+        e2eI = mxGetPr(plhs[0]);
+    }
     
     plhs[1] = mxCreateDoubleMatrix(simulLen, 1, mxREAL);
     i2eI = mxGetPr(plhs[1]);
@@ -488,7 +506,11 @@ void mexFunction(int nlhs, mxArray *plhs[],
     
     
     // Allocating arrays:
-    tLastSP = mxCalloc(totNnrn, sizeof(double)); /* array with the last spike time of each neuron*/
+    //tLastSP = mxCalloc(totNnrn, sizeof(double)); /* array with the last spike time of each neuron*/
+	// Use a recycled version
+    mxArray *tLastSPcopy = mxDuplicateArray(prhs[3]);
+    plhs[4] = tLastSPcopy;
+    tLastSP = mxGetPr(plhs[4]);
     
     aX_rec  = mxCalloc(totNnrn, sizeof(double)); /* Auxiliary recurrent AMPA variables*/
     aX_ext  = mxCalloc(totNnrn, sizeof(double)); /* Auxiliary external AMPA variables*/
@@ -498,7 +520,14 @@ void mexFunction(int nlhs, mxArray *plhs[],
     aS_ext  = mxCalloc(totNnrn, sizeof(double)); /* external AMPA time course*/
     gS      = mxCalloc(totNnrn, sizeof(double)); /* GABA time course*/
     
-    V       = mxCalloc(totNnrn, sizeof(double)); /* membrane potential*/
+    //V       = mxCalloc(totNnrn, sizeof(double)); /* membrane potential*/
+	// Use a recycled version
+    mxArray *Vcopy = mxDuplicateArray(prhs[4]);
+    plhs[5] = Vcopy;
+    V = mxGetPr(plhs[5]);
+
+    plhs[6] = mxCreateDoubleMatrix(totNnrn, totNnrn, mxREAL);
+
     Ncon    = mxCalloc(totNnrn, sizeof(mwSize)); /* array with the number of outgoing connections of each neuron*/
     
     // Allocating matrices:
@@ -517,45 +546,58 @@ void mexFunction(int nlhs, mxArray *plhs[],
      * been provided by the user (if it has been provided), seed1, so that the same
      * network configuration can be used repeatedly.*/
         
-    syntemp = mxCalloc(totNnrn, sizeof(mwSize)); /* auxiliary array to build the connections of the network*/
-    RAND_MAX_double = (double) RAND_MAX;
-    seed1 = -seed1; /*seed for ran1 must be a negative integer*/
-
-    for(nrn=0; nrn<totNnrn; nrn++) { /*nrn is the postsynaptic neuron*/
-        //recurrent AMPA connections entering the nrn-th neuron
-        for(nrn2=0;nrn2<eNnrn;nrn2++) syntemp[nrn2]=0; /*initializing the syntemp array*/
-        ip = p*eNnrn + (int)(0.5+gasdev(&seed1)*sqrt((float)(p*eNnrn))); /*number of AMPA connections entering the nrn-th neuron*/
-        /*The mean number of AMPA connections entering each neuron is (p*eNnrn) */
-        /*The variance of the number of AMPA connections entering each neuron is (p*eNnrn) */
-        for(nrn2=0; nrn2<ip; nrn2++) {     
-            kn = ran1(&seed1)*eNnrn; /*randomly selecting an excitatory presynaptic neuron*/
-            if (syntemp[kn]==0) {
-                syntemp[kn]=1;
-                A[Ncon[kn] + kn*totNnrn] = nrn; /*connection: kn -> nrn*/
-                Ncon[kn]++; /*number of outgoing connections of the kn-th neuron*/
+    if (restart == 0)
+    {
+        syntemp = mxCalloc(totNnrn, sizeof(mwSize)); /* auxiliary array to build the connections of the network*/
+        RAND_MAX_double = (double) RAND_MAX;
+        seed1 = -seed1; /*seed for ran1 must be a negative integer*/
+    
+        for(nrn=0; nrn<totNnrn; nrn++) { /*nrn is the postsynaptic neuron*/
+            //recurrent AMPA connections entering the nrn-th neuron
+            for(nrn2=0;nrn2<eNnrn;nrn2++) syntemp[nrn2]=0; /*initializing the syntemp array*/
+            ip = p*eNnrn + (int)(0.5+gasdev(&seed1)*sqrt((float)(p*eNnrn))); /*number of AMPA connections entering the nrn-th neuron*/
+            /*The mean number of AMPA connections entering each neuron is (p*eNnrn) */
+            /*The variance of the number of AMPA connections entering each neuron is (p*eNnrn) */
+            for(nrn2=0; nrn2<ip; nrn2++) {     
+                kn = ran1(&seed1)*eNnrn; /*randomly selecting an excitatory presynaptic neuron*/
+                if (syntemp[kn]==0) {
+                    syntemp[kn]=1;
+                    A[Ncon[kn] + kn*totNnrn] = nrn; /*connection: kn -> nrn*/
+                    Ncon[kn]++; /*number of outgoing connections of the kn-th neuron*/
+                }
+                else{   
+                    nrn2--;
+                }
             }
-            else{   
-                nrn2--;
+            //GABA connections entering the nrn-th neuron
+            for(nrn2=0;nrn2<iNnrn;nrn2++) syntemp[nrn2]=0; /*initializing the syntemp array*/
+            ip = p*iNnrn + (int)(0.5+gasdev(&seed1)*sqrt((float)(p*iNnrn))); /*number of GABA connections entering the nrn-th neuron*/
+            /*The mean number of GABA connections entering each neuron is (p*iNnrn) */
+            /*The variance of the number of GABA connections entering each neuron is (p*iNnrn) */
+            for(nrn2=0; nrn2<ip; nrn2++) {
+                kn = eNnrn + ran1(&seed1)*iNnrn; /*randomly selecting an inhibitory presynaptic neuron*/     
+                if (syntemp[kn - eNnrn]==0) {
+                    syntemp[kn - eNnrn]=1;
+                    A[Ncon[kn] + kn*totNnrn] = nrn; /*connection: kn -> nrn*/
+                    Ncon[kn]++; /*number of outgoing connections of the kn-th neuron*/
+                }
+                else{   
+                    nrn2--;
+                }
             }
         }
-        //GABA connections entering the nrn-th neuron
-        for(nrn2=0;nrn2<iNnrn;nrn2++) syntemp[nrn2]=0; /*initializing the syntemp array*/
-        ip = p*iNnrn + (int)(0.5+gasdev(&seed1)*sqrt((float)(p*iNnrn))); /*number of GABA connections entering the nrn-th neuron*/
-        /*The mean number of GABA connections entering each neuron is (p*iNnrn) */
-        /*The variance of the number of GABA connections entering each neuron is (p*iNnrn) */
-        for(nrn2=0; nrn2<ip; nrn2++) {
-            kn = eNnrn + ran1(&seed1)*iNnrn; /*randomly selecting an inhibitory presynaptic neuron*/     
-            if (syntemp[kn - eNnrn]==0) {
-                syntemp[kn - eNnrn]=1;
-                A[Ncon[kn] + kn*totNnrn] = nrn; /*connection: kn -> nrn*/
-                Ncon[kn]++; /*number of outgoing connections of the kn-th neuron*/
-            }
-            else{   
-                nrn2--;
-            }
-        }
+        mxFree(syntemp);
     }
-    mxFree(syntemp);
+    else
+    {
+			/* Copy previous content into current array */
+        double *AcopyPr = mxGetPr(prhs[5]);
+        //for(nrn=0; nrn<totNnrn*totNnrn; nrn++) {
+        //    A[nrn] = (mwSize)AcopyPr[nrn];
+        //}
+        memcpy(A, AcopyPr, totNnrn*totNnrn);
+    }
+
     // check of the average number of outgoing connections ---------------------
     avNcon_outgo=0;
     sdNcon_outgo=0;
@@ -575,12 +617,14 @@ void mexFunction(int nlhs, mxArray *plhs[],
     eCounter=0;
     iCounter=0;
     
+/*
     for(nrn=0; nrn<totNnrn; nrn++) {
         // Initializing the membrane potential to V_leaky:
-        V[nrn] = V_leaky;
+        //V[nrn] = V_leaky;
         // Initializing time of last spike to -simulLen:
-        tLastSP[nrn] = -simulLen;
+        //tLastSP[nrn] = -simulLen;
     }
+*/
      
     mexPrintf("Simulation_time=%.0f ms\n", simulLen*Dt);
     
@@ -915,20 +959,29 @@ void mexFunction(int nlhs, mxArray *plhs[],
             iCounter=0;
         }
     } // end of loop over time -------------------------------------------------------
+
+    // Set some state as outputs
+    //plhs[6] = mxCreateDoubleMatrix(totNnrn, 1, mxREAL);
+    double *AcopyPr =  mxGetPr(plhs[6]);
+    //for(nrn=0; nrn<totNnrn*totNnrn; nrn++) {
+    //    AcopyPr[nrn] = (mwSize)A[nrn];
+    //}
+	memcpy(AcopyPr, A, totNnrn*totNnrn);
+
     
-    mxFree(tLastSP);
+    //mxFree(tLastSP);
     mxFree(aX_rec);
     mxFree(aX_ext);
     mxFree(gX);
     mxFree(aS_rec);
     mxFree(aS_ext);
     mxFree(gS);
-    mxFree(V);
+    //mxFree(V);
     mxFree(Ncon);
     mxFree(eSPC);
     mxFree(iSPC);
-    mxFree(A);
+    //mxFree(A);
 
-    printf("Simulation done.\n\n");  
+    mexPrintf("Simulation done.\n\n");  
 } // main end
 

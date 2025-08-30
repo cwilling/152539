@@ -159,8 +159,6 @@ simL_sec =max(x)
  %  Initialise a vector for time of last spike
   %tLastSP = zeros(Ntot,1) - M;
   tLastSP = - ones(1, Ntot) * simulation_length;
-  % Initialise array of neuron connections
-%  A = zeros(Ntot);  % need to preserve the connectivity matrix
 
   fprintf("Setup done!\n");
   pause(1);
@@ -170,15 +168,15 @@ tic % timing
   fprintf("iterations set by: %d/%d = %d\n", M, net_COBN.sample_width, iterations);
 % Initialisation
 fprintf("\nloop_COBN() Iteration = 1\n");
-  [E2EI,I2EI,eFR,iFR] = code_COBNv4(net_COBN, INPUT2E, INPUT2I, net_COBN.SEED_connections, net_COBN.SEED_poisson);
+  [E2EI,I2EI,eFR,iFR,tLastSP,V,A] = code_COBNv4(net_COBN, INPUT2E, INPUT2I, tLastSP, V, [], []);
   fprintf("ZZZZZZZZZZZZZZZZ\n");
-return
+
  % now iterate forward in time:"
   for i = 2:iterations
     fprintf("\nloop_COBN() Iteration = %d of %d\n", i,iterations);
 
     net_COBN.restart = net_COBN.restart + net_COBN.sample_width;
-    [E2EI,I2EI,eFR,iFR] = code_COBNv4(net_COBN, INPUT2E, INPUT2I, net_COBN.SEED_connections, net_COBN.SEED_poisson);
+    [E2EI,I2EI,eFR,iFR,tLastSP,V,A] = code_COBNv4(net_COBN, INPUT2E, INPUT2I, tLastSP, V, A, E2EI);
   end
 toc % timing
 
