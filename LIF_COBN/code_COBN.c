@@ -3,9 +3,9 @@
  * @brief mex code to simulate a recurrent random network with excitatory 
  *        and inhibitory LIF CONDUCTANCE-BASED neurons. 
  *          The network is fully described in the paper 
- *          “Comparison of the dynamics of neural interactions between
+ *          "Comparison of the dynamics of neural interactions between
  *          current-based and conductance-based integrate-and-fire 
- *          recurrent networks” written by S.Cavallari, S.Panzeri 
+ *          recurrent networks" written by S.Cavallari, S.Panzeri 
  *          and A.Mazzoni and published in Frontiers in Neural Circuits 
  *          (2014), 8:12. doi:10.3389/fncir.2014.00012.
  *          Please cite this paper if you use the code.
@@ -917,3 +917,4 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
     printf("Simulation done.\n\n");  
 } // main end
+
