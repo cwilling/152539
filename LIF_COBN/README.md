@@ -1,4 +1,4 @@
-### Overview
+#### Overview.
 
 The original COBN code is extended here to allow multiple, successive, calls from Matlab driver code.
 
@@ -14,20 +14,29 @@ These are recycled between the Matlab driver and C codes for successive time win
 The new code can be used to simulate interacting groups of LIF neurons. Simulation time windows down to 16 time steps work OK
 and reproduce the results of longer simulations (> 1sec) quite closely.
 
-### Usage
+#### Installation.
+Either clone this repository or unpack a release tarball somewhere e.g.
+```
+  mkdir ~/src
+  cd ~/src
+  git clone https://github.com/cwilling/152539
+```
+Then run Matlab, changing directory to the newly created ~/src/152539/LIF_COBN directory.
 
-As an example, run _driver\_processing_ from Matlab in this directory.
+#### Usage.
+
+If installed as above, under Matlab run _`driver_processing`_
 
 Basic characteristics of the neuron's connections matrix
 have been set in _driver\_connections.m_ which runs the C code in connections_COBN.c to actually generate the connections
-matrix.  _driver\_processing.m_ enables various network parameters to be set (in net_COBN), in particular _sample_width_
+matrix. The _driver\_processing.m_ file sets various network parameters (in the net_COBN structure), in particular _sample_width_
 which determines the number of time steps to be processed in each iteration of the C code solver ( _processing\_COBN.c_).
+Change the parameters in _driver\_connections.m_ and _driver\_processing.m_ to test alternate scenarios.
 
-##### Project Lead
-Prof. Bernard Pailthorpe, Physics, University of Sydney, Australia
+#### Authors (2025 extensions).
+Project Lead: Prof. Bernard Pailthorpe, Physics, University of Sydney, Australia
 e: bernard.pailthorpe@sydney.edu.au
 
-##### Code changes
-Christoph Willing
+Coding: Christoph Willing
 [https://github.com/cwilling/152539/issues](https://github.com/cwilling/152539/issues)
 
