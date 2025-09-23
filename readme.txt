@@ -27,3 +27,9 @@ LIF_CUBN/code_CUBN.c, LIF_CUBN/code_CUBN.m were enhanced.
 and LIF_CUBN/OU_process.m) together with the instructions
 (LIF_COBN/ReadMe_COBN and LIF_CUBN/ReadMe_CUBN)
 to set the arguments to generate the data used in some figures of the paper.
+
+20250923 (Added by Christoph Willing)
+In LIF_COBN, code_COBN.c separated into connections_COBN.c and process_COBN.c
+with Matlab driver_connections.m and driver_process.m added to exercise them.
+See LIF_COBN/README.md for details.
+
